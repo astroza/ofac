@@ -1,4 +1,4 @@
-# OFAC elasticsearch feeder
+# OFAC Elasticsearch Feeder
 ## Update
 ### One shot
 ```bash
