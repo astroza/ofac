@@ -1,14 +1,18 @@
-# Updater
-## One shot
+# OFAC elasticsearch feeder
+## Update
+### One shot
 ```bash
 ruby ofac_updater.rb once
 ```
-## As service
+### As service
 ```bash
 ruby ofac_updater.rb
 ```
-
-# Search example
+### Debugging
+```bash
+DEBUG=true ruby ofac_updater.rb once
+```
+## Search example
 ```bash
 curl -XGET 'http://localhost:9200/vofac/entry/_search?q=_all:torres'|json
 ```
