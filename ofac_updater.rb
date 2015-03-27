@@ -15,19 +15,31 @@ UPDATE_INTERVAL = 24*60*60
 run_once = ARGV.length > 0
 DEBUG = ENV['DEBUG'] != nil
 
-def load_to_elastic_search(doc)
+def load_to_elastic_search(doc, source)
   client = Elasticsearch::Client.new log: DEBUG
   
   node = doc.root.child
-  puts "+ Deleting index.."
-  client.indices.delete(index: 'ofac')
+
+  begin
+    puts "+ Hiding vofac"
+    client.indices.delete_alias index: 'ofac', name: 'vofac'
+  rescue
+  end
+  
+  begin
+    puts "+ Deleting old entries.. (source:#{source.to_s})"
+    client.delete_by_query(index: 'ofac', q: 'source:'+source.to_s)
+  rescue Elasticsearch::Transport::Transport::Errors::NotFound => not_found
+    client.indices.create(:index => 'ofac', :body => JSON.parse(File.open('mapping.json') {|f| d=f.read; f.close; d}))
+  end
   count = 0
+  puts "+ Inserting entries"
   while node
     if node.class != Nokogiri::XML::Text and node.name == 'sdnEntry'
-      
-      resp = client.index(index: 'ofac', type: 'entry', body: node.to_hash)
+      node_hash = node.to_hash
+      node_hash['source'] = source
+      client.index(index: 'ofac', type: 'entry', body: node_hash)
       if DEBUG
-        puts resp
         puts '----------------------------'
       end
       count += 1
@@ -35,6 +47,8 @@ def load_to_elastic_search(doc)
     node = node.next
   end
   puts "+ #{count} entries added"
+  client.indices.put_alias index: 'ofac', name: 'vofac'
+  puts "+ vofac is available again"
 end
 
 class Nokogiri::XML::Element
@@ -54,18 +68,6 @@ class Nokogiri::XML::Element
   end
 end
 
-class Nokogiri::XML::Document
-  def to_json(*a)
-    root.to_json(*a)
-  end
-end
-
-class Nokogiri::XML::Text
-  def to_json(*a)
-    text.to_json(*a)
-  end
-end
-
 update_dates = {}
 for xml_url in XMLS
   update_dates[xml_url] = Date.new(0)
@@ -78,7 +80,7 @@ rescue
 end
 
 begin
-  for xml_url in XMLS
+  XMLS.each_with_index do |xml_url, source|
     response = HTTParty.head(xml_url)
     date = Date.parse(response.headers['last-modified'])
     if date > update_dates[xml_url]
@@ -87,7 +89,7 @@ begin
         config.noblanks
       end
       update_dates[xml_url] = date
-      load_to_elastic_search(doc)
+      load_to_elastic_search(doc, source)
     else
       puts "+ Nothing to do for #{xml_url} (updated #{date})"
     end
