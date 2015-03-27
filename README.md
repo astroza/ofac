@@ -14,5 +14,5 @@ DEBUG=true ruby ofac_updater.rb once
 ```
 ## Search example
 ```bash
-curl -XGET 'http://localhost:9200/vofac/entry/_search?q=_all:torres'|json
+curl -XGET 'http://localhost:9200/vofac/entry/_search?q=_all:mohamed'|json
 ```
