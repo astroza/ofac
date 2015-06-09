@@ -1,5 +1,5 @@
 # OFAC Elasticsearch Feeder
-## Dependencies installation
+## Installing dependencies
 ```bash
 bundle install
 ```
