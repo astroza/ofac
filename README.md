@@ -1,18 +1,22 @@
 # OFAC Elasticsearch Feeder
+## Dependencies installation
+```bash
+bundle install
+```
 ## Update
 ### One shot
 ```bash
-ruby ofac_updater.rb once
+APP_ENV=development bundle exec ruby ofac_updater.rb once
 ```
 ### As service
 ```bash
-ruby ofac_updater.rb
+APP_ENV=development bundle exec ruby ofac_updater.rb
 ```
 ### Debugging
 ```bash
-DEBUG=true ruby ofac_updater.rb once
+APP_ENV=development DEBUG=true bundle exec ruby ofac_updater.rb once
 ```
 ## Search example
 ```bash
-curl -XGET 'http://localhost:9200/vofac/entry/_search?q=_all:mohamed'|json
+curl -XGET 'http://localhost:9200/vofac_development/entry/_search?q=_all:mohamed'|json
 ```
