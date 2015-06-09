@@ -4,7 +4,6 @@ require 'open-uri'
 require 'nokogiri'
 require 'json'
 require 'date'
-require 'debugger'
 require 'elasticsearch'
 
 
@@ -18,12 +17,13 @@ else
 end
 INDEX = 'ofac_' + APP_ENV
 VINDEX = 'vofac_' + APP_ENV
+ES_HOST = 'localhost'
 
 run_once = ARGV.length > 0
 DEBUG = ENV['DEBUG'] != nil
 
 def load_to_elastic_search(doc, source)
-  client = Elasticsearch::Client.new log: DEBUG
+  client = Elasticsearch::Client.new host: ES_HOST, log: DEBUG
   
   node = doc.root.child
 
