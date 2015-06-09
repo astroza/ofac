@@ -207,7 +207,7 @@
             },
             "source":{  
                "type":"long",
-               "index":"no"
+               "index":"not_analyzed"
             },
             "title":{  
                "type":"string",

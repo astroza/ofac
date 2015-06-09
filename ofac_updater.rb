@@ -11,6 +11,13 @@ require 'elasticsearch'
 PERSISTENT_UPDATE_DATES = '.ofac_update_dates'
 XMLS = ['http://www.treasury.gov/ofac/downloads/consolidated/consolidated.xml', 'http://www.treasury.gov/ofac/downloads/sdn.xml']
 UPDATE_INTERVAL = 24*60*60
+if ENV['APP_ENV']
+	APP_ENV = ENV['APP_ENV']
+else
+	APP_ENV = 'development'
+end
+INDEX = 'ofac_' + APP_ENV
+VINDEX = 'vofac_' + APP_ENV
 
 run_once = ARGV.length > 0
 DEBUG = ENV['DEBUG'] != nil
@@ -22,15 +29,15 @@ def load_to_elastic_search(doc, source)
 
   begin
     puts "+ Hiding vofac"
-    client.indices.delete_alias index: 'ofac', name: 'vofac'
+    client.indices.delete_alias index: INDEX, name: VINDEX
   rescue
   end
   
   begin
     puts "+ Deleting old entries.. (source:#{source.to_s})"
-    client.delete_by_query(index: 'ofac', q: 'source:'+source.to_s)
+    client.delete_by_query(index: INDEX, q: 'source:'+source.to_s)
   rescue Elasticsearch::Transport::Transport::Errors::NotFound => not_found
-    client.indices.create(:index => 'ofac', :body => JSON.parse(File.open('mapping.json') {|f| d=f.read; f.close; d}))
+    client.indices.create(:index => INDEX, :body => JSON.parse(File.open('mapping.json') {|f| d=f.read; f.close; d}))
   end
   count = 0
   puts "+ Inserting entries"
@@ -38,7 +45,7 @@ def load_to_elastic_search(doc, source)
     if node.class != Nokogiri::XML::Text and node.name == 'sdnEntry'
       node_hash = node.to_hash
       node_hash['source'] = source
-      client.index(index: 'ofac', type: 'entry', body: node_hash)
+      client.index(index: INDEX, type: 'entry', body: node_hash)
       if DEBUG
         puts '----------------------------'
       end
@@ -47,7 +54,7 @@ def load_to_elastic_search(doc, source)
     node = node.next
   end
   puts "+ #{count} entries added"
-  client.indices.put_alias index: 'ofac', name: 'vofac'
+  client.indices.put_alias index: INDEX, name: VINDEX
   puts "+ vofac is available again"
 end
 
@@ -77,6 +84,11 @@ begin
   File.open(PERSISTENT_UPDATE_DATES, 'r').tap { |f| update_dates=Marshal.load(f.read) }.close if File.exists?(PERSISTENT_UPDATE_DATES)
 rescue
   puts 'Ignoring the persisted update dates'
+end
+
+puts "index: #{INDEX}, vindex: #{VINDEX}"
+if not run_once
+	puts "Daemon mode"
 end
 
 begin
