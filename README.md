@@ -3,7 +3,7 @@
 ```bash
 bundle install
 ```
-## Update
+## Update index
 ### One shot
 ```bash
 APP_ENV=development bundle exec ruby ofac_updater.rb once
